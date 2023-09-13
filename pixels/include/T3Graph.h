@@ -94,29 +94,29 @@ struct NTuple
     void clear()
     {
         // Edge features
-        t3_pt = { -999 };
-        t3_eta = { -999 };
-        t3_phi = { -999 };
-        t3_hasPixel = { -999 };
-        t3_isFake = { -999 };
+        t3_pt.clear();
+        t3_eta.clear();
+        t3_phi.clear();
+        t3_hasPixel.clear();
+        t3_isFake.clear();
         // Adjacency indices
-        t3_xLS_idx0 = { -999 };
-        t3_xLS_idx1 = { -999 };
+        t3_xLS_idx0.clear();
+        t3_xLS_idx1.clear();
         // Node features
-        xLS_isPixel = { -999 };
-        xLS_pt = { -999 };
-        xLS_eta = { -999 };
-        xLS_phi = { -999 };
-        xLS_innerHit_x = { -999 };
-        xLS_innerHit_y = { -999 };
-        xLS_innerHit_z = { -999 };
-        xLS_innerHit_layer = { -999 };
-        xLS_innerHit_moduleType = { -999 };
-        xLS_outerHit_x = { -999 };
-        xLS_outerHit_y = { -999 };
-        xLS_outerHit_z = { -999 };
-        xLS_outerHit_layer = { -999 };
-        xLS_outerHit_moduleType = { -999 };
+        xLS_isPixel.clear();
+        xLS_pt.clear();
+        xLS_eta.clear();
+        xLS_phi.clear();
+        xLS_innerHit_x.clear();
+        xLS_innerHit_y.clear();
+        xLS_innerHit_z.clear();
+        xLS_innerHit_layer.clear();
+        xLS_innerHit_moduleType.clear();
+        xLS_outerHit_x.clear();
+        xLS_outerHit_y.clear();
+        xLS_outerHit_z.clear();
+        xLS_outerHit_layer.clear();
+        xLS_outerHit_moduleType.clear();
         // Other branches
         n_LS = 0;
         n_pLS = 0;
@@ -132,8 +132,8 @@ struct NTuple
         n_real_edge_pixel = 0;
     };
 
-    void setEdgeLeaves(LST::NTuple& lst, unsigned int T3_i, bool is_real,
-                       unsigned int inner_idx, unsigned int outer_idx)
+    void addEdge(LST::NTuple& lst, unsigned int T3_i, bool is_real,
+                 unsigned int inner_idx, unsigned int outer_idx)
     {
         t3_pt.push_back(lst.t3_pt->at(T3_i));
         t3_eta.push_back(lst.t3_eta->at(T3_i));
@@ -151,7 +151,7 @@ struct NTuple
         n_real_edge_noPixel += is_real;
     };
 
-    void setNodeLeaves(LST::NTuple& lst, unsigned int LS_i)
+    void addNode(LST::NTuple& lst, unsigned int LS_i)
     {
         // Set xLS leaves
         xLS_pt.push_back(lst.LS_pt->at(LS_i));
@@ -173,8 +173,8 @@ struct NTuple
         n_xLS++;
     };
 
-    void setEdgeLeavesPixel(LST::NTuple& lst, unsigned int pLS_i, bool is_real, 
-                            unsigned int inner_idx, unsigned int outer_idx)
+    void addEdgePixel(LST::NTuple& lst, unsigned int pLS_i, bool is_real, 
+                      unsigned int inner_idx, unsigned int outer_idx)
     {
         t3_pt.push_back(lst.pLS_pt->at(pLS_i));
         t3_eta.push_back(lst.pLS_eta->at(pLS_i));
@@ -192,7 +192,7 @@ struct NTuple
         n_real_edge_pixel += is_real;
     };
 
-    void setNodeLeavesPixel(LST::NTuple& lst, unsigned int pLS_i)
+    void addNodePixel(LST::NTuple& lst, unsigned int pLS_i)
     {
         // Set xLS leaves
         xLS_pt.push_back(lst.pLS_pt->at(pLS_i));

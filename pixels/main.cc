@@ -171,7 +171,7 @@ void fillGraphT3(MasterModuleMap& module_map, LST::NTuple& lst, T3Graph::NTuple&
             if (LS_in_graph.find(inner_LS_i) == LS_in_graph.end())
             {
                 // Set leaves in output TTree
-                out.setNodeLeaves(lst, inner_LS_i);
+                out.addNode(lst, inner_LS_i);
                 // Populate LS detid map
                 fillDetIDMapLS(lst, inner_LS_i, detid_LS_map);
                 // Keep track of LS position in output NTuple
@@ -183,7 +183,7 @@ void fillGraphT3(MasterModuleMap& module_map, LST::NTuple& lst, T3Graph::NTuple&
             if (LS_in_graph.find(outer_LS_i) == LS_in_graph.end())
             {
                 // Set leaves in output TTree
-                out.setNodeLeaves(lst, outer_LS_i);
+                out.addNode(lst, outer_LS_i);
                 // Populate LS detid map
                 fillDetIDMapLS(lst, outer_LS_i, detid_LS_map);
                 // Keep track of LS position in output NTuple
@@ -191,7 +191,7 @@ void fillGraphT3(MasterModuleMap& module_map, LST::NTuple& lst, T3Graph::NTuple&
                 n_xLS_in_graph++;
             }
             // Set adjacency indices and edge truth label
-            out.setEdgeLeaves(
+            out.addEdge(
                 lst,                      // LST NTuple
                 T3_i,                     // T3 idx in LST NTuple
                 !lst.t3_isFake->at(T3_i), // is real
@@ -229,11 +229,11 @@ void fillGraphT3(MasterModuleMap& module_map, LST::NTuple& lst, T3Graph::NTuple&
                         );
                         if (pLS_in_graph.find(pLS_i) == pLS_in_graph.end())
                         {
-                            out.setNodeLeavesPixel(lst, pLS_i);
+                            out.addNodePixel(lst, pLS_i);
                             pLS_in_graph[pLS_i] = n_xLS_in_graph;
                             n_xLS_in_graph++;
                         }
-                        out.setEdgeLeavesPixel(
+                        out.addEdgePixel(
                             lst,                 // LST NTuple
                             pLS_i,               // pLS idx in LST NTuple
                             is_real,             // is real
