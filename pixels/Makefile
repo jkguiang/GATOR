@@ -4,7 +4,7 @@ EXE=bin/run
 
 SOURCES=$(wildcard *.cc)
 OBJECTS=$(SOURCES:.cc=.o)
-HEADERS=$(SOURCES:.cc=.h)
+HEADERS=$(wildcard include/*.h)
 
 CC          = g++
 CXX         = g++
@@ -26,7 +26,7 @@ all: $(EXE)
 $(EXE): $(OBJECTS)
 	$(LD) $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) $(ROOTLIBS) $(EXTRAFLAGS) $(EXTRACFLAGS) -o $@
 
-%.o: %.cc
+%.o: %.cc $(HEADERS)
 	$(CC) $(CFLAGS) $(EXTRACFLAGS) $< -c -o $@
 
 clean:
