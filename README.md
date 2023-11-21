@@ -1,7 +1,7 @@
 # GATOR
 _GNN-Accelerated Track Object Recognition_
 
-## Using HiPerGator
+# Using HiPerGator
 First, you will need to login to hpg
 ```
 ssh $user@hpg.rc.ufl.edu
@@ -16,8 +16,7 @@ Or, if you are just testing the code, use an interactive job on a CPU node inste
 srun --ntasks=1 --cpus-per-task=1 --mem=2gb -t 90 --pty bash -i
 ```
 
-## Instructions for the one-shot GNN
-### Set up
+# Set up GATOR
 On login[1-6] node checkout the code
 ```
 git clone git@github.com:sgnoohc/GATOR.git
@@ -30,8 +29,8 @@ git clone https://github.com/sgnoohc/rooutil.git
 cd -
 ```
 
-### Instructions
-#### Create the graph
+# Instructions for the one-shot GNN
+## Create the graph
 Create the GATOR graph N-tuple (includes pixels)
 ```
 cd pixels
@@ -39,7 +38,7 @@ source setup_hpg.sh
 make clean; make -j
 ./bin/run --graph=T3 –output_file=GATOR_T3Graph_NTuple.root /path/to/LST_NTuple.root
 ```
-#### Train the GNN
+## Train the GNN
 First, run the training workflow (more detailed instructions can be found in `gnn/README.md`)
 ```
 cd gnn
@@ -50,7 +49,7 @@ Once the training finishes, create a ROOT file with the GNN scores in it
 ```
 python python/lift.py configs/GNN_LSnodes_T3edges_oneShot_featNorm.json
 ```
-#### Create the output NTuple
+## Create the output NTuple
 Create the GATOR output NTuplee
 ```
 cd ntuple
