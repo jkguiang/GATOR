@@ -6,9 +6,9 @@ import argparse
 import matplotlib.pyplot as plt
 import uproot
 import torch
-from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
 
+from datasets import LSTGraph
 from utils import GatorConfig, SimpleProgress
 
 class Plots:
@@ -108,11 +108,28 @@ class Plots:
         for name in self.true_hists:
             self.plot(name, tag=tag)
 
-def transform(feature, transf):
+def transform(feature, transf, params=None):
+    # Check inputs
     if transf is None:
         return feature
-    elif transf == "rescale":
+    if type(transf) == GatorConfig:
+        for _transf, _params in transf.items():
+            feature = transform(feature, _transf, params=_params)
+        return feature
+
+    # Apply transformation
+    if transf == "rescale":
         return (feature - feature.min())/(feature.max() - feature.min())
+    elif transf == "rescale_range":
+        min_value, max_value = params
+        return (feature - min_value)/(max_value - min_value)
+    elif transf == "rescale_clamp":
+        min_value, max_value = params
+        feature = (feature - min_value)/(max_value - min_value)
+        return torch.clamp(feature, min=min_value, max=max_value)
+    elif transf == "clamp":
+        min_value, max_value = params
+        return torch.clamp(feature, min=min_value, max=max_value)
     elif transf == "log":
         return torch.log(feature)
     elif transf == "log2":
@@ -133,8 +150,10 @@ def ingress_file(config, root_file, save=True, plot=True):
     graphs = []
     with uproot.open(root_file) as f:
         # Collect branches to ingress
-        branches = config.ingress["node_features"] + config.ingress["edge_features"] + config.ingress["edge_indices"]
-        branches.append(config.ingress["truth_label"])
+        branches = config.ingress.node_features + config.ingress.edge_features + config.ingress.edge_indices
+        branches.append(config.ingress.truth_label)
+        if config.ingress.get("node_lst_indices", None):
+            branches.append(config.ingress.node_lst_indices)
 
         # Load TTree
         tree = f[config.ingress.ttree_name].arrays(branches)
@@ -173,12 +192,32 @@ def ingress_file(config, root_file, save=True, plot=True):
                 
             node_attr = torch.transpose(torch.stack(node_attr), 0, 1)
 
+            if config.ingress.get("node_lst_indices", None):
+                lst_index = torch.tensor(event[config.ingress.node_lst_indices], dtype=torch.long)
+            else:
+                lst_index = None
+
+            if config.ingress.get("node_is_pixel", None):
+                is_pixel = torch.tensor(event[config.ingress.node_is_pixel], dtype=torch.long)
+            else:
+                is_pixel = None
+
             if config.ingress.get("undirected", False):
                 edge_idxs_bi, edge_attr_bi = to_undirected(edge_idxs, edge_attr)
                 _, truth_bi = to_undirected(edge_idxs, truth.to(torch.float))
-                graph = Data(x=node_attr, y=truth_bi, edge_index=edge_idxs_bi, edge_attr=edge_attr_bi)
+                graph = LSTGraph(
+                    x=node_attr, y=truth_bi, 
+                    edge_index=edge_idxs_bi, edge_attr=edge_attr_bi, 
+                    lst_index=lst_index,
+                    is_pixel=is_pixel
+                )
             else:
-                graph = Data(x=node_attr, y=truth.to(torch.float), edge_index=edge_idxs, edge_attr=edge_attr)
+                graph = LSTGraph(
+                    x=node_attr, y=truth.to(torch.float), 
+                    edge_index=edge_idxs, edge_attr=edge_attr, 
+                    lst_index=lst_index,
+                    is_pixel=is_pixel
+                )
 
             graphs.append(graph)
 

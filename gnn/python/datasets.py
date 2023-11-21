@@ -1,5 +1,12 @@
 import torch
+from torch_geometric.data import Data
 from torch.utils.data import Dataset
+
+class LSTGraph(Data):
+    def __init__(self, *args, lst_index=None, is_pixel=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lst_index = lst_index
+        self.is_pixel = is_pixel
 
 class EdgeDataBatch:
     def __init__(self, batch):
@@ -14,6 +21,13 @@ class EdgeDataBatch:
         self.edge_index = self.edge_index.to(device)
         self.edge_attr = self.edge_attr.to(device)
         self.y = self.y.to(device)
+        return self
+
+    def cpu(self):
+        self.x = self.x.cpu().detach()
+        self.edge_index = self.edge_index.cpu().detach()
+        self.edge_attr = self.edge_attr.cpu().detach()
+        self.y = self.y.cpu().detach()
         return self
 
 class EdgeData:
