@@ -36,7 +36,7 @@ Create the GATOR graph N-tuple (includes pixels)
 cd pixels
 source setup_hpg.sh
 make clean; make -j
-./bin/run --graph=T3 –output_file=GATOR_T3Graph_NTuple.root /path/to/LST_NTuple.root
+./bin/run --graph=T3 --output_file=GATOR_T3Graph_NTuple.root /path/to/LST_NTuple.root
 ```
 ## Train the GNN
 First, run the training workflow (more detailed instructions can be found in `gnn/README.md`)
@@ -55,5 +55,5 @@ Create the GATOR output NTuplee
 cd ntuple
 source setup_hpg.sh
 make clean; make -j
-./doAnalysis
+./bin/run
 ```
