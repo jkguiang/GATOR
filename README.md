@@ -1,65 +1,55 @@
-## Running on HiPerGator
+# GATOR
+_GNN-Accelerated Track Object Recognition_
 
-### Instructions
-
-Login to hpg
+## Set up on HiPerGator
+1. Login to hpg
 ```
 ssh $user@hpg.rc.ufl.edu
 ```
-
-On login[1-6] node checkout the code
+2. On login[1-6] node checkout the code
 ```
 git clone git@github.com:sgnoohc/GATOR.git
+cd GATOR
 ```
-
-Then fire up an interactive (option -i) SLURM job. (SLURM is an alternative to Condor)
+3. Then fire up an interactive (option -i) SLURM job. (SLURM is an alternative to Condor)
 Following command requests one A100 GPU node.
 ```
 srun --partition=gpu --gpus=1 --mem=16gb --constraint=a100 --pty bash -i
 ```
-
-Or, if you are just testing the code, use an interactive job on a CPU node instead:
+4. Or, if you are just testing the code, use an interactive job on a CPU node instead:
 ```
 srun --ntasks=1 --cpus-per-task=1 --mem=2gb -t 90 --pty bash -i
 ```
 
-Within the node:
+## Instructions for the one-shot GNN
+### Overview
+Insert overview here
+
+### Instructions
+#### Create the graph
+Create the GATOR graph N-tuple (includes pixels)
 ```
-cd GATOR/gnn
+cd pixels
 source setup_hpg.sh
-python python/ingress.py configs/ChangGNN_MDnodes_LSedges.json
-python python/train.py configs/ChangGNN_MDnodes_LSedges.json
-python python/infer.py configs/ChangGNN_MDnodes_LSedges.json
-python scripts/plot.py configs/ChangGNN_MDnodes_LSedges.json
+make clean; make -j
+./bin/run --graph=T3 –output_file=GATOR_T3Graph_NTuple.root /path/to/LST_NTuple.root
 ```
-
-More detailed instructions can be found in the README in `GATOR/gnn`.
-
-This creates the `output.root` that contains the MD and LS with `LS_score` branch
-
-While the job is running, you can get the job ID from the output of `squeue -u $USER`. 
-With this ID, you can find get metrics for your job, e.g. the GPU usage via `nvida-smi` for job `123456`:
+#### Train the GNN
+First, run the training workflow (more detailed instructions can be found in `gnn/README.md`)
 ```
-srun --jobid=123456 nvidia-smi
+cd gnn
+source setup_hpg.sh
+./bin/submit configs/GNN_LSnodes_T3edges_oneShot_featNorm.json
 ```
-
-### Input
-
-The beginning input `LSTNtuple.root` is located in Philip's home area.
-The intermediate values are also in the home area.
-In the python scripts in various places, the respective intermediate results outputs are located in the path noted in the comment. 
-
-### Displaying via plotly
-
-We will use https://jhub.rc.ufl.edu
-
-In the terminal install plotly/uproot/uproot-awkward
+Once the training finishes, create a ROOT file with the GNN scores in it
 ```
-module load python/3.10
-pip install plotly
-pip install uproot
-pip install awkward-pandas
+python python/lift.py configs/GNN_LSnodes_T3edges_oneShot_featNorm.json
 ```
-
-Then go to `display/` and open `EventDisplay.ipynb` for examples
-
+#### Create the output NTuple
+Create the GATOR output NTuplee
+```
+cd ntuple
+source setup_hpg.sh
+make clean; make -j
+./doAnalysis
+```
