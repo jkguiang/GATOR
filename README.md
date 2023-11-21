@@ -1,29 +1,34 @@
 # GATOR
 _GNN-Accelerated Track Object Recognition_
 
-## Set up on HiPerGator
-1. Login to hpg
+## Using HiPerGator
+First, you will need to login to hpg
 ```
 ssh $user@hpg.rc.ufl.edu
 ```
-2. On login[1-6] node checkout the code
-```
-git clone git@github.com:sgnoohc/GATOR.git
-cd GATOR
-```
-3. Then fire up an interactive (option -i) SLURM job. (SLURM is an alternative to Condor)
-Following command requests one A100 GPU node.
+For running any code, you must fire up an interactive (option -i) SLURM job. (SLURM is an alternative to Condor). 
+The following command requests one A100 GPU node:
 ```
 srun --partition=gpu --gpus=1 --mem=16gb --constraint=a100 --pty bash -i
 ```
-4. Or, if you are just testing the code, use an interactive job on a CPU node instead:
+Or, if you are just testing the code, use an interactive job on a CPU node instead:
 ```
 srun --ntasks=1 --cpus-per-task=1 --mem=2gb -t 90 --pty bash -i
 ```
 
 ## Instructions for the one-shot GNN
-### Overview
-Insert overview here
+### Set up
+On login[1-6] node checkout the code
+```
+git clone git@github.com:sgnoohc/GATOR.git
+cd GATOR
+```
+You will need `rooutil` to produce the final GATOR NTuple
+```
+cd ntuple
+git clone https://github.com/sgnoohc/rooutil.git
+cd -
+```
 
 ### Instructions
 #### Create the graph
