@@ -1,6 +1,6 @@
 # Simple makefile
 
-EXE=doAnalysis
+EXE=./bin/run
 
 SOURCES=$(wildcard *.cc)
 OBJECTS=$(SOURCES:.cc=.o)
@@ -23,7 +23,7 @@ EXTRAFLAGS  = -fPIC -ITMultiDrawTreePlayer -Wunused-variable -lTMVA -lEG -lGenVe
 
 all: $(ROOUTILDIR) $(EXE)
 
-$(EXE): $(OBJECTS) LSTTree.o trktree.o
+$(EXE): $(OBJECTS) LSTTree.o trktree.o gnntree.o
 	$(LD) $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) $(ROOTLIBS) $(EXTRAFLAGS) -o $@
 
 %.o: %.cc
