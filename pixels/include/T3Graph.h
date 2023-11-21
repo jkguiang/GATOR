@@ -34,6 +34,7 @@ struct NTuple
     std::vector<float> xLS_outerHit_z;
     std::vector<int> xLS_outerHit_layer;
     std::vector<int> xLS_outerHit_moduleType;
+    std::vector<int> xLS_LST_idx;
     // Other branches
     int n_LS = 0;
     int n_pLS = 0;
@@ -76,6 +77,7 @@ struct NTuple
         ttree->Branch("xLS_outerHit_z", &xLS_outerHit_z);
         ttree->Branch("xLS_outerHit_layer", &xLS_outerHit_layer);
         ttree->Branch("xLS_outerHit_moduleType", &xLS_outerHit_moduleType);
+        ttree->Branch("xLS_LST_idx", &xLS_LST_idx);
         // Other branches
         ttree->Branch("n_LS", &n_LS);
         ttree->Branch("n_pLS", &n_pLS);
@@ -117,6 +119,7 @@ struct NTuple
         xLS_outerHit_z.clear();
         xLS_outerHit_layer.clear();
         xLS_outerHit_moduleType.clear();
+        xLS_LST_idx.clear();
         // Other branches
         n_LS = 0;
         n_pLS = 0;
@@ -168,6 +171,7 @@ struct NTuple
         xLS_outerHit_z.push_back(lst.LS_2_z->at(LS_i));
         xLS_outerHit_layer.push_back(lst.LS_2_layer->at(LS_i));
         xLS_outerHit_moduleType.push_back(lst.LS_2_moduleType->at(LS_i));
+        xLS_LST_idx.push_back(LS_i);
 
         n_LS++;
         n_xLS++;
@@ -209,6 +213,7 @@ struct NTuple
         xLS_outerHit_z.push_back(lst.pLS_3_z->at(pLS_i));
         xLS_outerHit_layer.push_back(0);
         xLS_outerHit_moduleType.push_back(0);
+        xLS_LST_idx.push_back(pLS_i);
 
         n_pLS++;
         n_xLS++;
