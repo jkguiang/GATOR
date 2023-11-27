@@ -31,7 +31,8 @@
             "MD_1_x",
             "MD_1_y",
             "MD_1_z",
-            "MD_dphichange"
+            "MD_dphichange",
+            "MD_layer"
         ],
         "truth_label": "LS_isFake",
         "branch_filter": "/(MD|LS)_*/"
@@ -47,6 +48,6 @@
             "gamma": 0.7,
             "step_size": 5
         },
-        "n_epochs": 200
+        "n_epochs": 1000
     }
 }
