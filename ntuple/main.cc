@@ -74,23 +74,30 @@ struct Track
     float pt;
     float pt_sum;
     float score_sum;
+    float eta;
+    float phi;
+    int n_LS;
+    int n_pLS;
+    unsigned int n_nodes;
     std::set<int> unique_hitidxs;
     std::map<int,int> unique_hittypes;
-    int type;
-    unsigned int n_nodes;
 
     Track()
     {
-        pt = 0.;
+        pt = -999.;
         pt_sum = 0.;
         score_sum = 0.;
-        type = 0;
+        eta = -999.;
+        phi = -999.;
+        n_LS = 0;
+        n_pLS = 0;
         n_nodes = 0;
     };
 
     Track(const Track& other)
-    : pt(other.pt), pt_sum(other.pt_sum), unique_hitidxs(other.unique_hitidxs), 
-      unique_hittypes(other.unique_hittypes), type(other.type), n_nodes(other.n_nodes)
+    : pt(other.pt), pt_sum(other.pt_sum), score_sum(other.score_sum), eta(other.eta), 
+      phi(other.phi), n_LS(other.n_LS), n_pLS(other.n_pLS), n_nodes(other.n_nodes), 
+      unique_hitidxs(other.unique_hitidxs), unique_hittypes(other.unique_hittypes)
     {
         // Do nothing
     };
@@ -102,9 +109,26 @@ struct Track
 
     void addNode(Node* node)
     {
+        if (n_nodes == 0)
+        {
+            // Inherit eta and phi from the innermost (first) node
+            eta = node->eta;
+            phi = node->phi;
+        }
 
-        type += (node->is_pixel) ? 100 : 1;
+        // Increment node counter
+        n_nodes++;
 
+        if (node->is_pixel)
+        {
+            n_pLS++;
+        }
+        else
+        {
+            n_LS++;
+        }
+
+        // Add hit indices and types to the sets for the entire track
         for (unsigned int hit_i = 0; hit_i < node->hitidxs.size(); ++hit_i)
         {
             int hitidx = node->hitidxs.at(hit_i);
@@ -112,8 +136,8 @@ struct Track
             unique_hittypes[hitidx] = node->hittypes.at(hit_i);
         }
 
+        // Re-calculate pT
         pt_sum += node->pt;
-        n_nodes++;
         pt = pt_sum/n_nodes;
     };
 
@@ -223,20 +247,33 @@ std::pair<Node*, Node*> sortNodes(Node* node0, Node* node1)
         }
         else
         {
+            std::cout << "Node0 LST idx: " << node0->lst_idx << std::endl;
+            std::cout << "Node1 LST idx: " << node1->lst_idx << std::endl;
+            std::cout << "Node0 LST r_sq: " << node0->hit0_r_sq << std::endl;
+            std::cout << "Node1 LST r_sq: " << node1->hit0_r_sq << std::endl;
             throw std::runtime_error("Error - found two nodes with the same hit0_r_sq");
         }
     }
 };
 
-// ./process INPUTFILEPATH OUTPUTFILE [NEVENTS]
 int main(int argc, char** argv)
 {
 
-    RooUtil::Looper<LSTTree> lst_looper;
-    RooUtil::Looper<trktree> trk_looper;
-    RooUtil::Looper<gnntree> gnn_looper;
+    // Initialize inputs
+    TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_10mu_10k_pt_0p5_2_5cm_cube.root");
+    TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_cube5.root");
+    TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_cube5.root");
 
-    TFile* tfile = new TFile("test_output.root", "RECREATE");
+    // Initialize loopers
+    RooUtil::Looper<LSTTree> lst_looper; // original output of LST
+    RooUtil::Looper<trktree> trk_looper; // original tracking NTuple
+    RooUtil::Looper<gnntree> gnn_looper; // GNN NTuple with scores for each edge
+    lst_looper.init(lstNtuple_tchain, &lst, -1); 
+    trk_looper.init(trkNtuple_tchain, &trk, -1); 
+    gnn_looper.init(gnnNtuple_tchain, &gnn, -1); 
+
+    // Initialize output
+    TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_cube5.root", "RECREATE");
     TTree* ttree = new TTree("tree", "tree");
 
     RooUtil::TTreeX tx = RooUtil::TTreeX(ttree);
@@ -247,21 +284,20 @@ int main(int argc, char** argv)
     tx.createBranch<std::vector<int>>("tc_isFake", true);
     tx.createBranch<std::vector<int>>("tc_isDuplicate", true);
     tx.createBranch<std::vector<std::vector<int>>>("tc_matched_simIdx", true);
+    tx.createBranch<std::vector<int>>("tc_first_matched_simIdx", true);
     tx.createBranch<std::vector<int>>("tc_n_matched_simIdx", true);
 
-    TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "trackingNtuple.root");
-    TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "input.root");
-    TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "test.root");
-
-    lst_looper.init(lstNtuple_tchain, &lst, -1); 
-    trk_looper.init(trkNtuple_tchain, &trk, -1); 
-    gnn_looper.init(gnnNtuple_tchain, &gnn, -1); 
+    /* TODO: add some sort of handling for len(gnn) != len(lst), since the GNN 
+     *       NTuple should not need to have the same number of events as the 
+     *       original LST NTuple. For example, we may only want to export the 
+     *       scores for a subset of the events (e.g. the testing set). */
 
     /* --- START: event loop --- */
     tqdm bar;
     unsigned int n_events = gnn_looper.getNEventsTotalInChain();
     for (unsigned int event_i = 0; event_i < n_events; ++event_i)
     {
+        tx.clear();
         lst_looper.nextEvent();
         trk_looper.nextEvent();
         gnn_looper.nextEvent();
@@ -300,7 +336,7 @@ int main(int argc, char** argv)
                         node0->graph->addGraph(node1->graph);
                         /* NOTE: we clear Node1's original graph without deleting it 
                          *       because it is not worth spending the time to find 
-                         *       and delete it. */
+                         *       and properly delete it. */
                         node1->graph->clear();
                         // Reset the graph index for all nodes in the merged graph
                         for (auto* node : node0->graph->nodes)
@@ -344,16 +380,24 @@ int main(int argc, char** argv)
         std::map<int, int> sim_n_tc_matches;
         for (auto* graph : subgraphs)
         {
-            /* TODO: this finds all tracks in a subgraph, then saves only up to three 
-             *       tracks with the largest GNN score sums. This is not a good metric, 
-             *       but it is a start. Improve this in the future! */
+            /* TODO: the following code finds all tracks in a subgraph, then saves at 
+             *       most three tracks with the largest GNN score sums. This is not a 
+             *       good metric, but it is a start. Improve this in the future! */
+
             // Perform depth-first search to find all paths (track candidates)
-            std::vector<Track*> tracks = graph->getTracksSorted();
+            std::vector<Track*> tracks = graph->getTracks();
+
+            // Sort tracks by GNN score sum
+            std::sort(
+                tracks.begin(), tracks.end(), 
+                [&](Track* this_track, Track* next_track) { return this_track->score_sum > next_track->score_sum; }
+            );
+
             // Process track candidates
-            int n_tracks = 0;
+            int n_saved_tracks = 0;
             for (auto* track : tracks)
             {
-                if (n_tracks >= 3) { break; }
+                if (n_saved_tracks >= 3) { break; }
                 std::vector<int> simidxs = track->getSimMatches();
                 tc_simidxs.push_back(simidxs);
                 // Keep track of how many TCs are matched to each sim track
@@ -368,15 +412,18 @@ int main(int argc, char** argv)
 
                 // Set branches
                 tx.pushbackToBranch<int>("tc_isFake", simidxs.size() == 0);
-                tx.pushbackToBranch<int>("tc_type", track->type);
+                tx.pushbackToBranch<int>("tc_type", (track->n_LS + 1) + track->n_pLS*100); // N MDs + (N pLSs)*100
                 tx.pushbackToBranch<float>("tc_pt", track->pt);
+                tx.pushbackToBranch<float>("tc_eta", track->eta);
+                tx.pushbackToBranch<float>("tc_phi", track->phi);
                 tx.pushbackToBranch<std::vector<int>>("tc_matched_simIdx", simidxs);
+                tx.pushbackToBranch<int>("tc_first_matched_simIdx", (simidxs.size() == 0) ? -999 : simidxs.at(0));
                 tx.pushbackToBranch<int>("tc_n_matched_simIdx", simidxs.size());
-                n_tracks++;
+                n_saved_tracks++;
             }
         }
         /* --- END: collect all track candidates --- */
-
+        
         /* --- START: wrap up this event --- */
         for (auto& simidxs : tc_simidxs)
         {
