@@ -217,7 +217,7 @@ void fillGraphT3(MasterModuleMap& module_map, LST::NTuple& lst, T3Graph::NTuple&
                 // Loop over LSs touching this module
                 for (unsigned int& LS_i : detid_LS_map[detid])
                 {
-                    bool is_match = true;
+                    bool is_match = true; // TODO: add some pLS+LS matching criteria
                     if (is_match)
                     {
                         bool is_real = shareSimMatchPixelToLS(
