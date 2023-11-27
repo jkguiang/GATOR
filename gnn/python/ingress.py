@@ -161,6 +161,9 @@ def ingress_file(config, root_file, save=True, plot=True):
         for event in SimpleProgress(tree):
             # Get truth labels
             truth = ~torch.tensor(event[config.ingress.truth_label], dtype=torch.bool)
+            if truth.nelement() == 0:
+                graphs.append(LSTGraph())
+                continue
 
             # Get indices of nodes connected by each edge
             edge0, edge1 = config.ingress.edge_indices

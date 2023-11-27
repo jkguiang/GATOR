@@ -17,7 +17,7 @@ from utils import GatorConfig, SimpleProgress
 
 def lift(model, device, loader):
 
-    file = uproot.recreate("test.root")
+    file = uproot.recreate("GATORNTuple_output_T3Graph_scores_cube5.root")
     tree_buffer = {
         "Node": {
             "lstIdx": [],
@@ -32,6 +32,13 @@ def lift(model, device, loader):
     n_graphs = len(loader)
     first_fill = True
     for graph_i, graph in enumerate(SimpleProgress(loader)):
+        # Handle empty graphs
+        if graph.edge_index is None:
+            for collection in tree_buffer:
+                for branch in tree_buffer[collection]:
+                    tree_buffer[collection][branch].append([])
+            continue
+
         graph = graph.to(device)
 
         # Run model inference over graph
@@ -94,5 +101,6 @@ if __name__ == "__main__":
     model = model.to(device)
 
     # loader = torch.load(config.get_outfile(subdir="datasets", tag="test", short=True))
-    loader = torch.load("/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GNN_LSnodes_T3edges_oneShot/inputs/GNN_LSnodes_T3edges_oneShot_T3Graph_NTuple.pt")
+    # loader = torch.load("/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GNN_LSnodes_T3edges_oneShot/inputs/GNN_LSnodes_T3edges_oneShot_T3Graph_NTuple.pt")
+    loader = torch.load("/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GNN_LSnodes_T3edges_oneShot_featNorm/inputs/GNN_LSnodes_T3edges_oneShot_featNorm_GATORNTuple_input_T3Graph_cube5.pt")
     lift(model, device, loader)
