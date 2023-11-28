@@ -1,5 +1,7 @@
-# GATOR
-_GNN-Accelerated Track Object Recognition_
+# GNN-Accelerated Track Object Recognition (GATOR)
+This repository contains the scripts and source code for training GNNs and DNNs for 
+charged particle tracking. This repository was designed under the assumption that a 
+user (developer) is running everything on the HiPerGator (HPG) system at UFL.
 
 # Using HiPerGator
 First, you will need to login to hpg
@@ -33,6 +35,7 @@ cd -
 ## Create the graph
 Create the GATOR graph N-tuple (includes pixels)
 ```
+srun --ntasks=1 --cpus-per-task=1 --mem=8gb -t 90 --pty bash -i
 cd pixels
 source setup_hpg.sh
 make clean; make -j
@@ -41,6 +44,7 @@ make clean; make -j
 ## Train the GNN
 First, run the training workflow (more detailed instructions can be found in `gnn/README.md`)
 ```
+srun --partition=gpu --gpus=1 --mem=16gb --constraint=a100 --pty bash -i
 cd gnn
 source setup_hpg.sh
 ./bin/submit configs/GNN_LSnodes_T3edges_oneShot_featNorm.json
@@ -52,6 +56,7 @@ python python/lift.py configs/GNN_LSnodes_T3edges_oneShot_featNorm.json
 ## Create the output NTuple
 Create the GATOR output NTuplee
 ```
+srun --ntasks=1 --cpus-per-task=1 --mem=16gb -t 90 --pty bash -i
 cd ntuple
 source setup_hpg.sh
 make clean; make -j
