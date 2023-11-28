@@ -4,9 +4,9 @@
 #include "trkcore.h"
 #include "rooutil.h"
 #include "cxxopts.h"
-#include "tqdm.h"
 
-const float GNNCUT = 0.99;
+const float GNN_CUT = 0.9;
+const int N_TC_PER_SUBGRAPH = 1;
 
 struct Node;
 struct Track;
@@ -277,6 +277,9 @@ int main(int argc, char** argv)
     TTree* ttree = new TTree("tree", "tree");
 
     RooUtil::TTreeX tx = RooUtil::TTreeX(ttree);
+    tx.createBranch<int>("n_tc", true);
+    tx.createBranch<int>("n_subgraphs", true);
+    tx.createBranch<int>("n_sim_matches", true);
     tx.createBranch<std::vector<float>>("tc_pt", true);
     tx.createBranch<std::vector<float>>("tc_eta", true);
     tx.createBranch<std::vector<float>>("tc_phi", true);
@@ -293,7 +296,6 @@ int main(int argc, char** argv)
      *       scores for a subset of the events (e.g. the testing set). */
 
     /* --- START: event loop --- */
-    tqdm bar;
     unsigned int n_events = gnn_looper.getNEventsTotalInChain();
     for (unsigned int event_i = 0; event_i < n_events; ++event_i)
     {
@@ -301,7 +303,6 @@ int main(int argc, char** argv)
         lst_looper.nextEvent();
         trk_looper.nextEvent();
         gnn_looper.nextEvent();
-        bar.progress(event_i, n_events);
 
         /* --- START: collect all connected components (isolated subgraphs) --- */
         std::vector<Node*> nodes;
@@ -314,7 +315,7 @@ int main(int argc, char** argv)
         for (unsigned int edge_i = 0; edge_i < gnn.nEdge(); ++edge_i)
         {
             float edge_score = gnn.Edge_score().at(edge_i);
-            if (edge_score > GNNCUT)
+            if (edge_score > GNN_CUT)
             {
                 std::pair<Node*, Node*> edge_nodes = sortNodes(
                     nodes.at(gnn.Edge_node0Idx().at(edge_i)),
@@ -376,6 +377,8 @@ int main(int argc, char** argv)
         /* --- END: collect all connected components (isolated subgraphs) --- */
 
         /* --- START: collect all track candidates --- */
+        int n_tc = 0;
+        int n_subgraphs = 0;
         std::vector<std::vector<int>> tc_simidxs;
         std::map<int, int> sim_n_tc_matches;
         for (auto* graph : subgraphs)
@@ -397,7 +400,7 @@ int main(int argc, char** argv)
             int n_saved_tracks = 0;
             for (auto* track : tracks)
             {
-                if (n_saved_tracks >= 3) { break; }
+                if (n_saved_tracks >= N_TC_PER_SUBGRAPH) { break; }
                 std::vector<int> simidxs = track->getSimMatches();
                 tc_simidxs.push_back(simidxs);
                 // Keep track of how many TCs are matched to each sim track
@@ -420,8 +423,17 @@ int main(int argc, char** argv)
                 tx.pushbackToBranch<int>("tc_first_matched_simIdx", (simidxs.size() == 0) ? -999 : simidxs.at(0));
                 tx.pushbackToBranch<int>("tc_n_matched_simIdx", simidxs.size());
                 n_saved_tracks++;
+                n_tc++;
+            }
+
+            if (n_saved_tracks > 0)
+            {
+                n_subgraphs++;
             }
         }
+        tx.setBranch<int>("n_tc", n_tc);
+        tx.setBranch<int>("n_subgraphs", n_subgraphs);
+        tx.setBranch<int>("n_sim_matches", sim_n_tc_matches.size());
         /* --- END: collect all track candidates --- */
         
         /* --- START: wrap up this event --- */
@@ -442,8 +454,6 @@ int main(int argc, char** argv)
         tx.fill();
         /* --- END: wrap up this event --- */
     }
-
-    bar.finish();
 
     tfile->cd();
     tx.write();
