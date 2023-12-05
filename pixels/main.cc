@@ -209,6 +209,10 @@ void fillGraphT3(MasterModuleMap& module_map, LST::NTuple& lst, T3Graph::NTuple&
             float eta = lst.pLS_eta->at(pLS_i);
             float phi = lst.pLS_phi->at(pLS_i);
             float dz = lst.pLS_dz->at(pLS_i);
+            if (fabs(eta) > 2.5)
+            {
+                continue; // pLSs only in the inner tracker cannot match to an LS
+            }
             // Loop over connected modules
             for (unsigned int& detid : module_map.getConnectedModules(charge, pt, eta, phi, dz))
             {
