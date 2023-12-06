@@ -23,8 +23,8 @@
 #define makeP4(Collection, idx) LorentzVector(Collection##_pt[idx],Collection##_eta[idx],Collection##_phi[idx],Collection##_mass[idx]);
 #define RANGE(a, b) unsigned a=0; a<b; a++
 
-#define NEDGE_MAX 1825887 // for Edge_* collection
-#define NNODE_MAX 240438 // for Node_* collection
+#define NEDGE_MAX 4000000 // for Edge_* collection
+#define NNODE_MAX 500000 // for Node_* collection
 
 using namespace std;
 
