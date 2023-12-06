@@ -5,8 +5,8 @@
 #include "rooutil.h"
 #include "cxxopts.h"
 
-const float GNN_CUT = 0.9;
-const int N_TC_PER_SUBGRAPH = 1;
+const float GNN_CUT = 0.95;
+const int N_TC_PER_SUBGRAPH = 5;
 
 struct Node;
 struct Track;
@@ -260,9 +260,15 @@ int main(int argc, char** argv)
 {
 
     // Initialize inputs
-    TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_10mu_10k_pt_0p5_2_5cm_cube.root");
-    TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_cube5.root");
-    TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_cube5.root");
+    // TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_10mu_pt_0p5_2.root");
+    // TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_muonGun.root");
+    // TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_muonGun.root");
+    TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/p.chang/data/lst/CMSSW_12_2_0_pre2/trackingNtuple_ttbar_PU200.root");
+    TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_PU200.root");
+    TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_PU200.root");
+    // TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_10mu_10k_pt_0p5_2_5cm_cube.root");
+    // TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_cube5.root");
+    // TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_cube5.root");
 
     // Initialize loopers
     RooUtil::Looper<LSTTree> lst_looper; // original output of LST
@@ -272,14 +278,19 @@ int main(int argc, char** argv)
     trk_looper.init(trkNtuple_tchain, &trk, -1); 
     gnn_looper.init(gnnNtuple_tchain, &gnn, -1); 
 
-    // Initialize output
-    TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_cube5.root", "RECREATE");
+    // Initialize output TFile
+    // TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_muonGun.root", "RECREATE");
+    TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_PU200.root", "RECREATE");
+    // TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_cube5.root", "RECREATE");
     TTree* ttree = new TTree("tree", "tree");
 
+    // Initialize output TTree
     RooUtil::TTreeX tx = RooUtil::TTreeX(ttree);
+    // Custom branches
     tx.createBranch<int>("n_tc", true);
     tx.createBranch<int>("n_subgraphs", true);
     tx.createBranch<int>("n_sim_matches", true);
+    // TC branches
     tx.createBranch<std::vector<float>>("tc_pt", true);
     tx.createBranch<std::vector<float>>("tc_eta", true);
     tx.createBranch<std::vector<float>>("tc_phi", true);
@@ -289,6 +300,23 @@ int main(int argc, char** argv)
     tx.createBranch<std::vector<std::vector<int>>>("tc_matched_simIdx", true);
     tx.createBranch<std::vector<int>>("tc_first_matched_simIdx", true);
     tx.createBranch<std::vector<int>>("tc_n_matched_simIdx", true);
+    // Sim branches (copied from original NTuple)
+    tx.createBranch<std::vector<float>>("sim_pt",      true);
+    tx.createBranch<std::vector<float>>("sim_eta",     true);
+    tx.createBranch<std::vector<float>>("sim_phi",     true);
+    tx.createBranch<std::vector<float>>("sim_pca_dxy", true);
+    tx.createBranch<std::vector<float>>("sim_pca_dz",  true);
+    tx.createBranch<std::vector<int>>("sim_q",         true);
+    tx.createBranch<std::vector<int>>("sim_event",     true);
+    tx.createBranch<std::vector<int>>("sim_pdgId",     true);
+
+    // For vertex we need to look it up from simvtx info
+    tx.createBranch<std::vector<float>>("sim_vx", true);
+    tx.createBranch<std::vector<float>>("sim_vy", true);
+    tx.createBranch<std::vector<float>>("sim_vz", true);
+
+    // The trkNtupIdx is the idx in the trackingNtuple
+    tx.createBranch<std::vector<float>>("sim_trkNtupIdx");
 
     /* TODO: add some sort of handling for len(gnn) != len(lst), since the GNN 
      *       NTuple should not need to have the same number of events as the 
@@ -296,6 +324,7 @@ int main(int argc, char** argv)
      *       scores for a subset of the events (e.g. the testing set). */
 
     /* --- START: event loop --- */
+    double runtime_sum = 0.;
     unsigned int n_events = gnn_looper.getNEventsTotalInChain();
     for (unsigned int event_i = 0; event_i < n_events; ++event_i)
     {
@@ -304,6 +333,7 @@ int main(int argc, char** argv)
         trk_looper.nextEvent();
         gnn_looper.nextEvent();
 
+        std::chrono::high_resolution_clock::time_point t0 = std::chrono::high_resolution_clock::now();
         /* --- START: collect all connected components (isolated subgraphs) --- */
         std::vector<Node*> nodes;
         for (unsigned int node_i = 0; node_i < gnn.nNode(); ++node_i)
@@ -451,10 +481,55 @@ int main(int argc, char** argv)
             tx.pushbackToBranch<int>("tc_isDuplicate", is_duplicate);
         }
 
+        std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> runtime = t1 - t0;
+        runtime_sum += runtime.count();
         tx.fill();
         /* --- END: wrap up this event --- */
+
+        /* --- START: copy data from LST NTuple --- */
+        for (unsigned int sim_i = 0; sim_i < trk.sim_pt().size(); ++sim_i)
+        {
+
+            // Skip out-of-time pileup
+            if (trk.sim_bunchCrossing()[sim_i] != 0) { continue; }
+
+            // Skip non-hard-scatter
+            if (trk.sim_event()[sim_i] != 0) { continue; }
+
+            tx.pushbackToBranch<float>("sim_pt",      trk.sim_pt()[sim_i]);
+            tx.pushbackToBranch<float>("sim_eta",     trk.sim_eta()[sim_i]);
+            tx.pushbackToBranch<float>("sim_phi",     trk.sim_phi()[sim_i]);
+            tx.pushbackToBranch<float>("sim_pca_dxy", trk.sim_pca_dxy()[sim_i]);
+            tx.pushbackToBranch<float>("sim_pca_dz",  trk.sim_pca_dz()[sim_i]);
+            tx.pushbackToBranch<int>("sim_q",         trk.sim_q()[sim_i]);
+            tx.pushbackToBranch<int>("sim_event",     trk.sim_event()[sim_i]);
+            tx.pushbackToBranch<int>("sim_pdgId",     trk.sim_pdgId()[sim_i]);
+
+            // For vertex we need to look it up from simvtx info
+            int vtx_i = trk.sim_parentVtxIdx()[sim_i];
+            tx.pushbackToBranch<float>("sim_vx", trk.simvtx_x()[vtx_i]);
+            tx.pushbackToBranch<float>("sim_vy", trk.simvtx_y()[vtx_i]);
+            tx.pushbackToBranch<float>("sim_vz", trk.simvtx_z()[vtx_i]);
+
+            // The trkNtupIdx is the idx in the trackingNtuple
+            tx.pushbackToBranch<float>("sim_trkNtupIdx", sim_i);
+        }
+        /* --- END: copy data from LST NTuple --- */
     }
+    std::cout << "Avg. runtime: " << runtime_sum/n_events << " ms" << std::endl;
+
+    TFile* lstNtuple_tfile = lstNtuple_tchain->GetFile();
+
+    TNamed* code_tag_data = (TNamed*)lstNtuple_tfile->Get("code_tag_data");
+    TNamed* gitdiff = (TNamed*)lstNtuple_tfile->Get("gitdiff");
+    TNamed* input = (TNamed*)lstNtuple_tfile->Get("input");
 
     tfile->cd();
+
     tx.write();
+
+    code_tag_data->Write();
+    gitdiff->Write();
+    input->Write();
 }
