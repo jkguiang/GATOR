@@ -1,12 +1,12 @@
-#include "LSTTree.h"
-#include "gnntree.h"
-#include "trktree.h"
+#include "LSTTree.h" // lst
+#include "gnntree.h" // gnn
+#include "trktree.h" // trk
 #include "trkcore.h"
 #include "rooutil.h"
 #include "cxxopts.h"
 
-const float GNN_CUT = 0.05;
-const int N_TC_PER_SUBGRAPH = 2;
+const float GNN_CUT = 0.25;
+const int N_TC_PER_SUBGRAPH = 4;
 
 struct Node;
 struct Track;
@@ -111,11 +111,13 @@ struct Track
         }
 
         // Add hit indices and types to the sets for the entire track
-        for (unsigned int hit_i = 0; hit_i < node->hitidxs().size(); ++hit_i)
+        std::vector<int> hitidxs = node->hitidxs();
+        std::vector<int> hittypes = node->hittypes();
+        for (unsigned int hit_i = 0; hit_i < hitidxs.size(); ++hit_i)
         {
-            int hitidx = node->hitidxs().at(hit_i);
+            int hitidx = hitidxs.at(hit_i);
             unique_hitidxs.insert(hitidx);
-            unique_hittypes[hitidx] = node->hittypes().at(hit_i);
+            unique_hittypes[hitidx] = hittypes.at(hit_i);
         }
 
         // Re-calculate pT
@@ -151,11 +153,14 @@ private:
         {
             for (auto* next_node : node->neighbors)
             {
+                // Make a copy of the original track for each new path forward
                 Track* new_track = track->copy();
                 new_track->score_sum += node->edge_scores[next_node];
 
                 getTracksRecursive(next_node, new_track);
             }
+            // Delete original track
+            delete track;
         }
     };
 public:
@@ -195,22 +200,12 @@ public:
         tracks.clear();
         for (auto* node : nodes)
         {
-            if (node->is_root && node->neighbors.size() > 0)
+            if (node->is_root && (node->neighbors.size() > 0 || node->is_pixel))
             {
                 Track* track = new Track();
                 getTracksRecursive(node, track);
             }
         }
-        return tracks;
-    };
-
-    std::vector<Track*> getTracksSorted()
-    {
-        std::vector<Track*> tracks = getTracks();
-        std::sort(
-            tracks.begin(), tracks.end(), 
-            [&](Track* track_i, Track* track_j) { return track_i->score_sum > track_j->score_sum; }
-        );
         return tracks;
     };
 };
@@ -253,17 +248,26 @@ std::pair<Node*, Node*> sortNodes(Node* node0, Node* node1)
 
 int main(int argc, char** argv)
 {
+    // Initialize files
+    // TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_10mu_pt_0p5_50.root");
+    // TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_muonGun_highPt.root");
+    // TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_muonGun_highPt.root");
+    // TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_muonGun_highPt.root", "RECREATE");
 
-    // Initialize inputs
     // TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_10mu_pt_0p5_2.root");
     // TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_muonGun.root");
     // TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_muonGun.root");
-    TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/p.chang/data/lst/CMSSW_12_2_0_pre2/trackingNtuple_ttbar_PU200.root");
+    // TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_muonGun.root", "RECREATE");
+
+    TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_ttbar_PU200.root");
     TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_PU200.root");
     TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_PU200.root");
+    TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_PU200.root", "RECREATE");
+
     // TChain* trkNtuple_tchain = RooUtil::FileUtil::createTChain("trackingNtuple/tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/trackingNtuple_10mu_10k_pt_0p5_2_5cm_cube.root");
     // TChain* lstNtuple_tchain = RooUtil::FileUtil::createTChain("tree", "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/LSTNtuple_forGATOR_hasT5Chi2_cube5.root");
     // TChain* gnnNtuple_tchain = RooUtil::FileUtil::createTChain("graph", "/home/jguiang/projects/GATOR/gnn/GATORNTuple_output_T3Graph_scores_cube5.root");
+    // TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_cube5.root", "RECREATE");
 
     // Initialize loopers
     RooUtil::Looper<LSTTree> lst_looper; // original output of LST
@@ -274,9 +278,6 @@ int main(int argc, char** argv)
     gnn_looper.init(gnnNtuple_tchain, &gnn, -1); 
 
     // Initialize output TFile
-    // TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_muonGun.root", "RECREATE");
-    TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_PU200.root", "RECREATE");
-    // TFile* tfile = new TFile("GATORNTuple_output_T3Graph_TCs_cube5.root", "RECREATE");
     TTree* ttree = new TTree("tree", "tree");
 
     // Initialize output TTree
@@ -296,14 +297,14 @@ int main(int argc, char** argv)
     tx.createBranch<std::vector<int>>("tc_first_matched_simIdx", true);
     tx.createBranch<std::vector<int>>("tc_n_matched_simIdx", true);
     // Sim branches (copied from original NTuple)
-    tx.createBranch<std::vector<float>>("sim_pt",      true);
-    tx.createBranch<std::vector<float>>("sim_eta",     true);
-    tx.createBranch<std::vector<float>>("sim_phi",     true);
+    tx.createBranch<std::vector<float>>("sim_pt", true);
+    tx.createBranch<std::vector<float>>("sim_eta", true);
+    tx.createBranch<std::vector<float>>("sim_phi", true);
     tx.createBranch<std::vector<float>>("sim_pca_dxy", true);
-    tx.createBranch<std::vector<float>>("sim_pca_dz",  true);
-    tx.createBranch<std::vector<int>>("sim_q",         true);
-    tx.createBranch<std::vector<int>>("sim_event",     true);
-    tx.createBranch<std::vector<int>>("sim_pdgId",     true);
+    tx.createBranch<std::vector<float>>("sim_pca_dz", true);
+    tx.createBranch<std::vector<int>>("sim_q", true);
+    tx.createBranch<std::vector<int>>("sim_event", true);
+    tx.createBranch<std::vector<int>>("sim_pdgId", true);
     tx.createBranch<std::vector<float>>("sim_vx", true);
     tx.createBranch<std::vector<float>>("sim_vy", true);
     tx.createBranch<std::vector<float>>("sim_vz", true);
@@ -320,6 +321,9 @@ int main(int argc, char** argv)
     /* --- START: event loop --- */
     double runtime_sum = 0.;
     unsigned int n_events = gnn_looper.getNEventsTotalInChain();
+    std::cout << "gnn looper n events: " << gnn_looper.getNEventsTotalInChain() << std::endl;
+    std::cout << "lst looper n events: " << lst_looper.getNEventsTotalInChain() << std::endl;
+    std::cout << "trk looper n events: " << trk_looper.getNEventsTotalInChain() << std::endl;
     for (unsigned int event_i = 0; event_i < n_events; ++event_i)
     {
         std::cout << "event " << event_i << std::endl;
@@ -340,14 +344,14 @@ int main(int argc, char** argv)
         for (unsigned int edge_i = 0; edge_i < gnn.nEdge(); ++edge_i)
         {
             float edge_score = gnn.Edge_score().at(edge_i);
-            if (edge_score < GNN_CUT)
+            if (edge_score > GNN_CUT)
             {
                 std::pair<Node*, Node*> edge_nodes = sortNodes(
                     nodes.at(gnn.Edge_node0Idx().at(edge_i)),
                     nodes.at(gnn.Edge_node1Idx().at(edge_i))
                 );
-                Node* node0 = edge_nodes.first;
-                Node* node1 = edge_nodes.second;
+                Node* node0 = edge_nodes.first;  // inner node
+                Node* node1 = edge_nodes.second; // outer node
                 node0->addNeighbor(node1, edge_score);
                 node1->is_root = false;
 
@@ -445,8 +449,9 @@ int main(int argc, char** argv)
         for (auto* graph : subgraphs)
         {
             /* TODO: the following code finds all tracks in a subgraph, then saves at 
-             *       most three tracks with the largest GNN score sums. This is not a 
-             *       good metric, but it is a start. Improve this in the future! */
+             *       most N_TC_PER_SUBGRAPH tracks with the smallest GNN score sums. 
+             *       This is not a good strategy, but it is a start. Improve this in 
+             *       the future! */
 
             // Perform depth-first search to find all paths (track candidates)
             std::vector<Track*> tracks = graph->getTracks();
@@ -502,7 +507,11 @@ int main(int argc, char** argv)
             {
                 n_subgraphs++;
             }
+
+            // Clean up
+            delete graph;
         }
+        subgraphs.clear();
         tx.setBranch<int>("n_tc", n_tc);
         tx.setBranch<int>("n_subgraphs", n_subgraphs);
         tx.setBranch<int>("n_sim_matches", sim_n_tc_matches.size());
@@ -531,20 +540,16 @@ int main(int argc, char** argv)
         runtime_sum += runtime.count();
         tx.fill();
 
+        // Clean up
         for (auto* node : nodes)
         {
             delete node;
         }
         nodes.clear();
-
-        for (auto* graph : subgraphs)
-        {
-            delete graph;
-        }
-        subgraphs.clear();
         /* --- END: wrap up this event --- */
     }
     std::cout << "Avg. runtime: " << runtime_sum/n_events << " ms" << std::endl;
+    /* --- END: event loop --- */
 
     TFile* lstNtuple_tfile = lstNtuple_tchain->GetFile();
 

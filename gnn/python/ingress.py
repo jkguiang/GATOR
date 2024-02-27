@@ -152,8 +152,8 @@ def ingress_file(config, root_file, save=True, plot=True):
         # Collect branches to ingress
         branches = config.ingress.node_features + config.ingress.edge_features + config.ingress.edge_indices
         branches.append(config.ingress.truth_label)
-        if config.ingress.get("node_lst_indices", None):
-            branches.append(config.ingress.node_lst_indices)
+        if config.ingress.get("node_lst_index", None):
+            branches.append(config.ingress.node_lst_index)
 
         # Load TTree
         tree = f[config.ingress.ttree_name].arrays(branches)
@@ -195,15 +195,20 @@ def ingress_file(config, root_file, save=True, plot=True):
                 
             node_attr = torch.transpose(torch.stack(node_attr), 0, 1)
 
-            if config.ingress.get("node_lst_indices", None):
-                lst_index = torch.tensor(event[config.ingress.node_lst_indices], dtype=torch.long)
+            if config.ingress.get("node_lst_index", None):
+                node_lst_index = torch.tensor(event[config.ingress.node_lst_index], dtype=torch.long)
             else:
-                lst_index = None
+                node_lst_index = None
 
             if config.ingress.get("node_is_pixel", None):
-                is_pixel = torch.tensor(event[config.ingress.node_is_pixel], dtype=torch.long)
+                node_is_pixel = torch.tensor(event[config.ingress.node_is_pixel], dtype=torch.long)
             else:
-                is_pixel = None
+                node_is_pixel = None
+
+            if config.ingress.get("edge_has_pixel", None):
+                edge_has_pixel = torch.tensor(event[config.ingress.edge_has_pixel], dtype=torch.long)
+            else:
+                edge_has_pixel = None
 
             if config.ingress.get("undirected", False):
                 edge_idxs_bi, edge_attr_bi = to_undirected(edge_idxs, edge_attr)
@@ -211,15 +216,17 @@ def ingress_file(config, root_file, save=True, plot=True):
                 graph = LSTGraph(
                     x=node_attr, y=truth_bi, 
                     edge_index=edge_idxs_bi, edge_attr=edge_attr_bi, 
-                    lst_index=lst_index,
-                    is_pixel=is_pixel
+                    node_lst_index=node_lst_index,
+                    node_is_pixel=node_is_pixel,
+                    edge_has_pixel=edge_has_pixel
                 )
             else:
                 graph = LSTGraph(
                     x=node_attr, y=truth.to(torch.float), 
                     edge_index=edge_idxs, edge_attr=edge_attr, 
-                    lst_index=lst_index,
-                    is_pixel=is_pixel
+                    node_lst_index=node_lst_index,
+                    node_is_pixel=node_is_pixel,
+                    edge_has_pixel=edge_has_pixel
                 )
 
             graphs.append(graph)
@@ -236,6 +243,12 @@ def ingress_file(config, root_file, save=True, plot=True):
 
 def ingress(config, save=True, plot=True):
     input_files = config.ingress.get("input_files", None)
+    input_files = [
+        # "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_PU200.root",
+        "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_cube5.root",
+        "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_muonGun.root",
+        "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_muonGun_highPt.root"
+    ]
     if not input_files is None:
         for root_file in input_files:
             ingress_file(config, root_file, save=save, plot=plot)

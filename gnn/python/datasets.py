@@ -3,10 +3,11 @@ from torch_geometric.data import Data
 from torch.utils.data import Dataset
 
 class LSTGraph(Data):
-    def __init__(self, *args, lst_index=None, is_pixel=None, **kwargs):
+    def __init__(self, *args, node_lst_index=None, node_is_pixel=None, edge_has_pixel=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.lst_index = lst_index
-        self.is_pixel = is_pixel
+        self.node_lst_index = node_lst_index
+        self.node_is_pixel = node_is_pixel
+        self.edge_has_pixel = edge_has_pixel
 
 class EdgeDataBatch:
     def __init__(self, batch):
