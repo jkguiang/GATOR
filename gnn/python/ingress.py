@@ -243,12 +243,6 @@ def ingress_file(config, root_file, save=True, plot=True):
 
 def ingress(config, save=True, plot=True):
     input_files = config.ingress.get("input_files", None)
-    input_files = [
-        # "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_PU200.root",
-        "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_cube5.root",
-        "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_muonGun.root",
-        "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_muonGun_highPt.root"
-    ]
     if not input_files is None:
         for root_file in input_files:
             ingress_file(config, root_file, save=save, plot=plot)
