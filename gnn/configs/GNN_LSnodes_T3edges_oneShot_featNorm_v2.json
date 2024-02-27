@@ -1,0 +1,69 @@
+{    
+    "base_dir": "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2",
+    "model": {
+        "name": "InteractionNetwork",
+        "message_size": 3,
+        "latent_node_size": 10,
+        "mlp_n_hidden_layers": 2,
+        "mlp_hidden_size": 200,
+        "n_message_passing_rounds": 2,
+        "message_aggregator": "add"
+    },
+    "ingress": {
+        "input_files": [
+            "/blue/p.chang/jguiang/data/lst/GATOR/CMSSW_12_2_0_pre2/GATORNTuple_input_T3Graph_PU200.root"
+        ],
+        "ttree_name": "tree",
+        "undirected": false,
+        "edge_indices": [
+            "t3_xLS_idx0",
+            "t3_xLS_idx1"
+        ],
+        "edge_features": [
+            "t3_pt",
+            "t3_eta",
+            "t3_phi",
+            "t3_hasPixel"
+        ],
+        "node_features": [
+            "xLS_isPixel",
+            "xLS_pt",
+            "xLS_eta",
+            "xLS_phi",
+            "xLS_innerHit_x",
+            "xLS_innerHit_y",
+            "xLS_innerHit_z",
+            "xLS_innerHit_layer",
+            "xLS_innerHit_moduleType",
+            "xLS_outerHit_x",
+            "xLS_outerHit_y",
+            "xLS_outerHit_z",
+            "xLS_outerHit_layer",
+            "xLS_outerHit_moduleType"
+        ],
+        "transforms": {
+            "t3_pt": {"log10": null, "rescale_clamp": [0, 100]},
+            "xLS_pt": {"log10": null, "rescale_clamp": [0, 100]},
+            "xLS_innerHit_x": {"rescale_range": [-300, 300]},
+            "xLS_innerHit_y": {"rescale_range": [-300, 300]},
+            "xLS_innerHit_z": {"rescale_range": [-300, 300]},
+            "xLS_outerHit_x": {"rescale_range": [-300, 300]},
+            "xLS_outerHit_y": {"rescale_range": [-300, 300]},
+            "xLS_outerHit_z": {"rescale_range": [-300, 300]}
+        },
+        "node_lst_indices": "xLS_LST_idx",
+        "node_is_pixel": "xLS_isPixel",
+        "truth_label": "t3_isFake",
+        "branch_filter": "/(LS|t3)_*/"
+    },
+    "train": {
+        "train_frac": 0.7,
+        "learning_rate": 0.005,
+        "seed": 1234,
+        "scheduler_name": "ConstantLR",
+        "scheduler_kwargs": {
+            "factor": 1.0
+        },
+        "n_epochs": 200
+    }
+}
